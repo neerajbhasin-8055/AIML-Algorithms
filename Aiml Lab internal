@@ -66,3 +66,368 @@ heuristic = {
 # Finding the shortest path from A to E
 solution = graph.a_star("A", "E", heuristic)
 print("Shortest Path:", solution)
+
+
+# Water Jug Problem 
+from heapq import heappop, heappush
+
+class WaterJugAStar:
+    def __init__(self, capacity_x, capacity_y, goal):
+        self.x = capacity_x  # Capacity of Jug X
+        self.y = capacity_y  # Capacity of Jug Y
+        self.goal = goal  # Target amount of water
+
+    def heuristic(self, state):
+        """Heuristic function: absolute difference between current water and goal"""
+        return abs(state[0] + state[1] - self.goal)
+
+    def get_neighbors(self, state):
+        """Generates all possible next states"""
+        X, Y = state
+        return [
+            (self.x, Y),  # Fill X
+            (X, self.y),  # Fill Y
+            (0, Y),  # Empty X
+            (X, 0),  # Empty Y
+            (max(0, X - (self.y - Y)), min(self.y, Y + X)),  # Pour X → Y
+            (min(self.x, X + Y), max(0, Y - (self.x - X)))   # Pour Y → X
+        ]
+
+    def a_star_search(self):
+        """A* search algorithm to find the optimal solution"""
+        start = (0, 0)
+        heap = [(self.heuristic(start), 0, start, [])]  # (f_score, cost, state, path)
+        visited = set()
+
+        while heap:
+            _, cost, state, path = heappop(heap)
+
+            if state in visited:
+                continue
+            visited.add(state)
+
+            path = path + [state]
+
+            if self.goal in state:
+                return path  # Solution found
+
+            for neighbor in self.get_neighbors(state):
+                if neighbor not in visited:
+                    heappush(heap, (cost + 1 + self.heuristic(neighbor), cost + 1, neighbor, path))
+
+        return None  # No solution found
+
+# Example Usage
+problem = WaterJugAStar(4, 3, 2)
+solution = problem.a_star_search()
+print("Solution Path:", solution)
+
+
+# Mesh A* 
+from heapq import heappop, heappush
+
+class AStarMesh:
+    def __init__(self, grid, start, goal):
+        self.grid = grid
+        self.start = start
+        self.goal = goal
+        self.rows = len(grid)
+        self.cols = len(grid[0])
+
+    def heuristic(self, node):
+        """Manhattan distance heuristic"""
+        return abs(node[0] - self.goal[0]) + abs(node[1] - self.goal[1])
+
+    def get_neighbors(self, node):
+        """Get valid neighboring positions (Up, Down, Left, Right)"""
+        r, c = node
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        neighbors = []
+
+        for dr, dc in directions:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < self.rows and 0 <= nc < self.cols and self.grid[nr][nc] != '#':
+                neighbors.append((nr, nc))
+
+        return neighbors
+
+    def a_star_search(self):
+        """A* search to find the shortest path in a grid"""
+        heap = [(self.heuristic(self.start), 0, self.start, [])]  # (f_score, cost, node, path)
+        visited = set()
+
+        while heap:
+            _, cost, node, path = heappop(heap)
+
+            if node in visited:
+                continue
+            visited.add(node)
+
+            path = path + [node]
+
+            if node == self.goal:
+                return path  # Found the goal
+
+            for neighbor in self.get_neighbors(node):
+                if neighbor not in visited:
+                    heappush(heap, (cost + 1 + self.heuristic(neighbor), cost + 1, neighbor, path))
+
+        return None  # No solution
+
+# Example Usage
+grid = [
+    ['S', '.', '.', '#', 'G'],
+    ['.', '#', '.', '#', '.'],
+    ['.', '.', '.', '.', '.']
+]
+
+start = (0, 0)  # 'S' position
+goal = (0, 4)   # 'G' position
+
+solver = AStarMesh(grid, start, goal)
+solution = solver.a_star_search()
+print("Solution Path:", solution)
+ 
+
+# 8 Tiles problem 
+
+from heapq import heappop, heappush
+
+class EightPuzzle:
+    def __init__(self, start, goal):
+        self.start = tuple(start)
+        self.goal = tuple(goal)
+
+    def heuristic(self, state):
+        """Calculate Manhattan distance heuristic"""
+        distance = 0
+        state_grid = {state[i]: (i // 3, i % 3) for i in range(9)}
+        goal_grid = {self.goal[i]: (i // 3, i % 3) for i in range(9)}
+
+        for tile in range(1, 9):  # Ignore the empty tile (0)
+            sx, sy = state_grid[tile]
+            gx, gy = goal_grid[tile]
+            distance += abs(sx - gx) + abs(sy - gy)
+
+        return distance
+
+    def get_neighbors(self, state):
+        """Generate valid moves from the current state"""
+        neighbors = []
+        state = list(state)
+        zero_idx = state.index(0)  # Find empty tile position
+        row, col = zero_idx // 3, zero_idx % 3
+
+        # Define move directions
+        moves = {
+            "Up": (-1, 0),
+            "Down": (1, 0),
+            "Left": (0, -1),
+            "Right": (0, 1)
+        }
+
+        best_moves = []
+        for move, (dr, dc) in moves.items():
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < 3 and 0 <= nc < 3:  # Valid move
+                new_idx = nr * 3 + nc
+                new_state = state[:]
+                new_state[zero_idx], new_state[new_idx] = new_state[new_idx], new_state[zero_idx]
+                best_moves.append((tuple(new_state), move))
+
+        # Sort moves by heuristic value to prioritize better states
+        best_moves.sort(key=lambda x: self.heuristic(x[0]))
+
+        return best_moves
+
+    def a_star_search(self):
+        """A* algorithm for solving 8-puzzle"""
+        heap = [(self.heuristic(self.start), 0, self.start, [])]  # (f-score, g-score, state, path)
+        visited = set()
+
+        while heap:
+            f, cost, state, path = heappop(heap)
+
+            if state in visited:
+                continue
+            visited.add(state)
+
+            if state == self.goal:
+                return path  # Return the list of moves
+
+            for neighbor, move in self.get_neighbors(state):
+                if neighbor not in visited:
+                    new_cost = cost + 1
+                    heappush(heap, (new_cost + self.heuristic(neighbor), new_cost, neighbor, path + [move]))
+
+        return None  # No solution found
+
+# Example Usage
+start_state = [
+    1, 2, 3,
+    4, 0, 5,
+    6, 7, 8
+]
+
+goal_state = [
+    1, 2, 3,
+    4, 5, 6,
+    7, 8, 0
+]
+
+solver = EightPuzzle(start_state, goal_state)
+solution = solver.a_star_search()
+print("Solution Steps:", solution)
+
+
+# Map Coloring 
+class MapColoringCSP:
+    def __init__(self, regions, neighbors, colors):
+        self.regions = regions  # List of regions
+        self.neighbors = neighbors  # Dictionary of adjacent regions
+        self.colors = colors  # List of available colors
+        self.assignment = {}  # Stores region-color mapping
+
+    def is_valid(self, region, color):
+        """Check if assigning 'color' to 'region' is valid (no conflict with neighbors)."""
+        for neighbor in self.neighbors.get(region, []):
+            if neighbor in self.assignment and self.assignment[neighbor] == color:
+                return False  # Conflict: Adjacent regions have the same color
+        return True
+
+    def backtracking(self):
+        """Solve the Map Coloring problem using Backtracking."""
+        if len(self.assignment) == len(self.regions):
+            return self.assignment  # If all regions are assigned, return solution
+
+        region = self.select_unassigned_region()
+        
+        for color in self.colors:
+            if self.is_valid(region, color):
+                self.assignment[region] = color  # Assign color
+                
+                result = self.backtracking()
+                if result:
+                    return result  # Found a valid solution
+                
+                del self.assignment[region]  # Backtrack if no valid assignment found
+
+        return None  # No solution found
+
+    def select_unassigned_region(self):
+        """Select the next region to assign (choosing the first unassigned region)."""
+        for region in self.regions:
+            if region not in self.assignment:
+                return region
+        return None
+
+# Example Usage
+regions = ["WA", "NT", "SA", "Q", "NSW", "V", "T"]
+neighbors = {
+    "WA": ["NT", "SA"],
+    "NT": ["WA", "SA", "Q"],
+    "SA": ["WA", "NT", "Q", "NSW", "V"],
+    "Q": ["NT", "SA", "NSW"],
+    "NSW": ["SA", "Q", "V"],
+    "V": ["SA", "NSW"],
+    "T": []  # Tasmania has no neighbors
+}
+colors = ["Red", "Green", "Blue"]
+
+solver = MapColoringCSP(regions, neighbors, colors)
+solution = solver.backtracking()
+print("Map Coloring Solution:", solution)
+ 
+
+CSP 8 Queens 
+class EightQueensCSP:
+    def __init__(self, n=8):
+        self.n = n  # Size of the board (8x8)
+        self.board = [-1] * n  # Stores queen positions; board[i] = column of queen in row i
+
+    def is_valid(self, row, col):
+        """Check if placing a queen at (row, col) is valid."""
+        for r in range(row):
+            c = self.board[r]
+            if c == col or abs(r - row) == abs(c - col):
+                return False  # Conflict with another queen
+        return True
+
+    def backtracking(self, row=0):
+        """Backtracking algorithm to solve the N-Queens problem."""
+        if row == self.n:
+            return self.get_solution()  # If all queens are placed, return solution
+        
+        for col in range(self.n):
+            if self.is_valid(row, col):
+                self.board[row] = col  # Place queen
+                result = self.backtracking(row + 1)
+                if result:
+                    return result  # Found a valid solution
+                self.board[row] = -1  # Backtrack if needed
+
+        return None  # No solution found
+
+    def get_solution(self):
+        """Convert the board array into a readable chessboard format."""
+        solution = []
+        for r in range(self.n):
+            row_str = ['.'] * self.n
+            row_str[self.board[r]] = 'Q'
+            solution.append(' '.join(row_str))
+        return solution
+
+# Example Usage
+solver = EightQueensCSP()
+solution = solver.backtracking()
+
+if solution:
+    print("8-Queens Solution:")
+    for row in solution:
+        print(row)
+else:
+    print("No solution found.")
+
+
+# Alpha Beta Pruning 
+import math
+
+class AlphaBetaPruning:
+    def __init__(self, depth=3):
+        self.depth = depth  # Maximum depth of the game tree
+
+    def minimax(self, depth, node_index, maximizing_player, values, alpha, beta):
+        """Minimax algorithm with Alpha-Beta Pruning."""
+        if depth == self.depth:  # Leaf node
+            return values[node_index]
+
+        if maximizing_player:
+            best = -math.inf  # Maximizer starts with the worst possible value
+            for i in range(2):  # Two children per node
+                val = self.minimax(depth + 1, node_index * 2 + i, False, values, alpha, beta)
+                best = max(best, val)
+                alpha = max(alpha, best)
+                if beta <= alpha:
+                    break  # Beta cut-off (Prune remaining branches)
+            return best
+        else:
+            best = math.inf  # Minimizer starts with the best possible value
+            for i in range(2):
+                val = self.minimax(depth + 1, node_index * 2 + i, True, values, alpha, beta)
+                best = min(best, val)
+                beta = min(beta, best)
+                if beta <= alpha:
+                    break  # Alpha cut-off
+            return best
+
+# Example usage: Game tree with depth 3 and leaf values
+values = [3, 5, 6, 9, 1, 2, 0, -1]
+solver = AlphaBetaPruning(depth=3)
+optimal_value = solver.minimax(0, 0, True, values, -math.inf, math.inf)
+
+print("Optimal Value:", optimal_value)
+
+
+# 
+
+
