@@ -1,433 +1,359 @@
-# A* Graph Problem 
-from queue import PriorityQueue
+✅ Alpha-Beta Pruning (Minimax Optimization) 
 
-class Graph:
-    def __init__(self):
-        self.nodes = {}  # Stores the graph as an adjacency list
+def alpha_beta(node, depth, alpha, beta, maximizing):
+    print(f"Node: {node}, DEPTH: {depth}, ALPHA: {alpha}, BETA: {beta}, MAXIMIZING: {maximizing}")
+    if depth == 0 or not isinstance(node, list):
+        return node
 
-    def add_edge(self, from_node, to_node, cost):
-        """ Adds an edge to the graph (bidirectional by default) """
-        if from_node not in self.nodes:
-            self.nodes[from_node] = []
-        if to_node not in self.nodes:
-            self.nodes[to_node] = []
-        
-        self.nodes[from_node].append((to_node, cost))
-        self.nodes[to_node].append((from_node, cost))  # Uncomment for undirected graph
+    if maximizing:
+        value = float('-inf')
+        for child in node:
+            value = max(value, alpha_beta(child, depth - 1, alpha, beta, False))
+            alpha = max(alpha, value)
+            print(f"UPDATED ALPHA: {alpha}, VALUE: {value}")
+            if alpha >= beta:
+                print("Pruning remaining nodes...")
+                break
+        return value
+    else:
+        value = float('inf')
+        for child in node:
+            value = min(value, alpha_beta(child, depth - 1, alpha, beta, True))
+            beta = min(beta, value)
+            print(f"UPDATED BETA: {beta}, VALUE: {value}")
+            if alpha >= beta:
+                print("Pruning remaining nodes...")
+                break
+        return value
 
-    def a_star(self, start, goal, heuristic):
-        """ A* Search Algorithm """
-        open_set = PriorityQueue()
-        open_set.put((0, start))  # (f_score, node)
-        
-        came_from = {}  # To store the optimal path
-        g_score = {node: float('inf') for node in self.nodes}
-        g_score[start] = 0  # Cost from start to start is 0
+def build_tree(leaf_values, branching):
+    def build(level_values, current_level):
+        if current_level == 0:
+            return level_values.pop(0)
+        return [build(level_values, current_level - 1) for _ in range(branching)]
+    values_copy = leaf_values.copy()
+    return build(values_copy, levels - 1)
 
-        f_score = {node: float('inf') for node in self.nodes}
-        f_score[start] = heuristic[start]  # Estimated total cost
+levels = int(input("Enter number of levels: "))
+branching = int(input("Enter branching factor: "))
+leaf_values = list(map(int, input("Enter leaf values: ").split()))
+tree = build_tree(leaf_values, branching)
+print("\nBest Outcome:", alpha_beta(tree, levels - 1, float('-inf'), float('inf'), True))
 
-        while not open_set.empty():
-            _, current = open_set.get()
+💧 Water Jug Problem (A Search)* 
+import heapq
 
-            if current == goal:
-                path = []
-                while current in came_from:
-                    path.append(current)
-                    current = came_from[current]
-                path.append(start)
-                return path[::-1]  # Return reversed path
+def heuristic(state, target):
+    return abs(state[0] - target) + abs(state[1] - target)
 
-            for neighbor, cost in self.nodes[current]:
-                temp_g_score = g_score[current] + cost
+def astar_waterjug(cap1, cap2, target):
+    open_list = []
+    visited = set()
+    start = (0, 0)
+    heapq.heappush(open_list, (0, start, []))
+    solutions = []
 
-                if temp_g_score < g_score[neighbor]:  # Found a better path
-                    came_from[neighbor] = current
-                    g_score[neighbor] = temp_g_score
-                    f_score[neighbor] = g_score[neighbor] + heuristic[neighbor]
-                    open_set.put((f_score[neighbor], neighbor))
-
-        return None  # No path found
-
-# Example Graph
-graph = Graph()
-graph.add_edge("A", "B", 1)
-graph.add_edge("A", "C", 4)
-graph.add_edge("B", "C", 2)
-graph.add_edge("B", "D", 5)
-graph.add_edge("C", "D", 1)
-graph.add_edge("D", "E", 3)
-
-# Heuristic values (estimated cost to reach goal "E")
-heuristic = {
-    "A": 7, "B": 6, "C": 2, "D": 1, "E": 0
-}
-
-# Finding the shortest path from A to E
-solution = graph.a_star("A", "E", heuristic)
-print("Shortest Path:", solution)
-
-
-# Water Jug Problem 
-from heapq import heappop, heappush
-
-class WaterJugAStar:
-    def __init__(self, capacity_x, capacity_y, goal):
-        self.x = capacity_x  # Capacity of Jug X
-        self.y = capacity_y  # Capacity of Jug Y
-        self.goal = goal  # Target amount of water
-
-    def heuristic(self, state):
-        """Heuristic function: absolute difference between current water and goal"""
-        return abs(state[0] + state[1] - self.goal)
-
-    def get_neighbors(self, state):
-        """Generates all possible next states"""
-        X, Y = state
-        return [
-            (self.x, Y),  # Fill X
-            (X, self.y),  # Fill Y
-            (0, Y),  # Empty X
-            (X, 0),  # Empty Y
-            (max(0, X - (self.y - Y)), min(self.y, Y + X)),  # Pour X → Y
-            (min(self.x, X + Y), max(0, Y - (self.x - X)))   # Pour Y → X
-        ]
-
-    def a_star_search(self):
-        """A* search algorithm to find the optimal solution"""
-        start = (0, 0)
-        heap = [(self.heuristic(start), 0, start, [])]  # (f_score, cost, state, path)
-        visited = set()
-
-        while heap:
-            _, cost, state, path = heappop(heap)
-
-            if state in visited:
-                continue
-            visited.add(state)
-
-            path = path + [state]
-
-            if self.goal in state:
-                return path  # Solution found
-
-            for neighbor in self.get_neighbors(state):
-                if neighbor not in visited:
-                    heappush(heap, (cost + 1 + self.heuristic(neighbor), cost + 1, neighbor, path))
-
-        return None  # No solution found
-
-# Example Usage
-problem = WaterJugAStar(4, 3, 2)
-solution = problem.a_star_search()
-print("Solution Path:", solution)
-
-
-# Mesh A* 
-from heapq import heappop, heappush
-
-class AStarMesh:
-    def __init__(self, grid, start, goal):
-        self.grid = grid
-        self.start = start
-        self.goal = goal
-        self.rows = len(grid)
-        self.cols = len(grid[0])
-
-    def heuristic(self, node):
-        """Manhattan distance heuristic"""
-        return abs(node[0] - self.goal[0]) + abs(node[1] - self.goal[1])
-
-    def get_neighbors(self, node):
-        """Get valid neighboring positions (Up, Down, Left, Right)"""
-        r, c = node
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        neighbors = []
-
-        for dr, dc in directions:
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < self.rows and 0 <= nc < self.cols and self.grid[nr][nc] != '#':
-                neighbors.append((nr, nc))
-
-        return neighbors
-
-    def a_star_search(self):
-        """A* search to find the shortest path in a grid"""
-        heap = [(self.heuristic(self.start), 0, self.start, [])]  # (f_score, cost, node, path)
-        visited = set()
-
-        while heap:
-            _, cost, node, path = heappop(heap)
-
-            if node in visited:
-                continue
-            visited.add(node)
-
-            path = path + [node]
-
-            if node == self.goal:
-                return path  # Found the goal
-
-            for neighbor in self.get_neighbors(node):
-                if neighbor not in visited:
-                    heappush(heap, (cost + 1 + self.heuristic(neighbor), cost + 1, neighbor, path))
-
-        return None  # No solution
-
-# Example Usage
-grid = [
-    ['S', '.', '.', '#', 'G'],
-    ['.', '#', '.', '#', '.'],
-    ['.', '.', '.', '.', '.']
-]
-
-start = (0, 0)  # 'S' position
-goal = (0, 4)   # 'G' position
-
-solver = AStarMesh(grid, start, goal)
-solution = solver.a_star_search()
-print("Solution Path:", solution)
- 
-
-# 8 Tiles problem 
-
-from heapq import heappop, heappush
-
-class EightPuzzle:
-    def __init__(self, start, goal):
-        self.start = tuple(start)
-        self.goal = tuple(goal)
-
-    def heuristic(self, state):
-        """Calculate Manhattan distance heuristic"""
-        distance = 0
-        state_grid = {state[i]: (i // 3, i % 3) for i in range(9)}
-        goal_grid = {self.goal[i]: (i // 3, i % 3) for i in range(9)}
-
-        for tile in range(1, 9):  # Ignore the empty tile (0)
-            sx, sy = state_grid[tile]
-            gx, gy = goal_grid[tile]
-            distance += abs(sx - gx) + abs(sy - gy)
-
-        return distance
-
-    def get_neighbors(self, state):
-        """Generate valid moves from the current state"""
-        neighbors = []
-        state = list(state)
-        zero_idx = state.index(0)  # Find empty tile position
-        row, col = zero_idx // 3, zero_idx % 3
-
-        # Define move directions
-        moves = {
-            "Up": (-1, 0),
-            "Down": (1, 0),
-            "Left": (0, -1),
-            "Right": (0, 1)
+    while open_list:
+        _, current, path = heapq.heappop(open_list)
+        if current in visited:
+            continue
+        visited.add(current)
+        jug1, jug2 = current
+        new_path = path + [current]
+        if jug1 == target or jug2 == target:
+            solutions.append(new_path)
+        next_steps = {
+            (cap1, jug2),
+            (jug1, cap2),
+            (0, jug2),
+            (jug1, 0),
+            (max(0, jug1 - (cap2 - jug2)), min(cap2, jug1 + jug2)),
+            (min(cap1, jug1 + jug2), max(0, jug2 - (cap1 - jug1)))
         }
+        for next_step in next_steps:
+            if next_step not in visited:
+                cost = 1 + heuristic(next_step, target)
+                heapq.heappush(open_list, (cost, next_step, new_path))
 
-        best_moves = []
-        for move, (dr, dc) in moves.items():
-            nr, nc = row + dr, col + dc
-            if 0 <= nr < 3 and 0 <= nc < 3:  # Valid move
-                new_idx = nr * 3 + nc
-                new_state = state[:]
-                new_state[zero_idx], new_state[new_idx] = new_state[new_idx], new_state[zero_idx]
-                best_moves.append((tuple(new_state), move))
+    return solutions
 
-        # Sort moves by heuristic value to prioritize better states
-        best_moves.sort(key=lambda x: self.heuristic(x[0]))
-
-        return best_moves
-
-    def a_star_search(self):
-        """A* algorithm for solving 8-puzzle"""
-        heap = [(self.heuristic(self.start), 0, self.start, [])]  # (f-score, g-score, state, path)
-        visited = set()
-
-        while heap:
-            f, cost, state, path = heappop(heap)
-
-            if state in visited:
-                continue
-            visited.add(state)
-
-            if state == self.goal:
-                return path  # Return the list of moves
-
-            for neighbor, move in self.get_neighbors(state):
-                if neighbor not in visited:
-                    new_cost = cost + 1
-                    heappush(heap, (new_cost + self.heuristic(neighbor), new_cost, neighbor, path + [move]))
-
-        return None  # No solution found
-
-# Example Usage
-start_state = [
-    1, 2, 3,
-    4, 0, 5,
-    6, 7, 8
-]
-
-goal_state = [
-    1, 2, 3,
-    4, 5, 6,
-    7, 8, 0
-]
-
-solver = EightPuzzle(start_state, goal_state)
-solution = solver.a_star_search()
-print("Solution Steps:", solution)
-
-
-# Map Coloring 
-class MapColoringCSP:
-    def __init__(self, regions, neighbors, colors):
-        self.regions = regions  # List of regions
-        self.neighbors = neighbors  # Dictionary of adjacent regions
-        self.colors = colors  # List of available colors
-        self.assignment = {}  # Stores region-color mapping
-
-    def is_valid(self, region, color):
-        """Check if assigning 'color' to 'region' is valid (no conflict with neighbors)."""
-        for neighbor in self.neighbors.get(region, []):
-            if neighbor in self.assignment and self.assignment[neighbor] == color:
-                return False  # Conflict: Adjacent regions have the same color
-        return True
-
-    def backtracking(self):
-        """Solve the Map Coloring problem using Backtracking."""
-        if len(self.assignment) == len(self.regions):
-            return self.assignment  # If all regions are assigned, return solution
-
-        region = self.select_unassigned_region()
-        
-        for color in self.colors:
-            if self.is_valid(region, color):
-                self.assignment[region] = color  # Assign color
-                
-                result = self.backtracking()
-                if result:
-                    return result  # Found a valid solution
-                
-                del self.assignment[region]  # Backtrack if no valid assignment found
-
-        return None  # No solution found
-
-    def select_unassigned_region(self):
-        """Select the next region to assign (choosing the first unassigned region)."""
-        for region in self.regions:
-            if region not in self.assignment:
-                return region
-        return None
-
-# Example Usage
-regions = ["WA", "NT", "SA", "Q", "NSW", "V", "T"]
-neighbors = {
-    "WA": ["NT", "SA"],
-    "NT": ["WA", "SA", "Q"],
-    "SA": ["WA", "NT", "Q", "NSW", "V"],
-    "Q": ["NT", "SA", "NSW"],
-    "NSW": ["SA", "Q", "V"],
-    "V": ["SA", "NSW"],
-    "T": []  # Tasmania has no neighbors
-}
-colors = ["Red", "Green", "Blue"]
-
-solver = MapColoringCSP(regions, neighbors, colors)
-solution = solver.backtracking()
-print("Map Coloring Solution:", solution)
- 
-
-CSP 8 Queens 
-class EightQueensCSP:
-    def __init__(self, n=8):
-        self.n = n  # Size of the board (8x8)
-        self.board = [-1] * n  # Stores queen positions; board[i] = column of queen in row i
-
-    def is_valid(self, row, col):
-        """Check if placing a queen at (row, col) is valid."""
-        for r in range(row):
-            c = self.board[r]
-            if c == col or abs(r - row) == abs(c - col):
-                return False  # Conflict with another queen
-        return True
-
-    def backtracking(self, row=0):
-        """Backtracking algorithm to solve the N-Queens problem."""
-        if row == self.n:
-            return self.get_solution()  # If all queens are placed, return solution
-        
-        for col in range(self.n):
-            if self.is_valid(row, col):
-                self.board[row] = col  # Place queen
-                result = self.backtracking(row + 1)
-                if result:
-                    return result  # Found a valid solution
-                self.board[row] = -1  # Backtrack if needed
-
-        return None  # No solution found
-
-    def get_solution(self):
-        """Convert the board array into a readable chessboard format."""
-        solution = []
-        for r in range(self.n):
-            row_str = ['.'] * self.n
-            row_str[self.board[r]] = 'Q'
-            solution.append(' '.join(row_str))
-        return solution
-
-# Example Usage
-solver = EightQueensCSP()
-solution = solver.backtracking()
-
-if solution:
-    print("8-Queens Solution:")
-    for row in solution:
-        print(row)
+cap1, cap2, target = 5, 3, 2
+solutions = astar_waterjug(cap1, cap2, target)
+if solutions:
+    print("Multiple Solutions Found:")
+    for i, sol in enumerate(solutions):
+        print(f"Solution {i + 1}: {sol}")
 else:
     print("No solution found.")
 
+🧭 A on Grid* 
 
-# Alpha Beta Pruning 
-import math
+import heapq
 
-class AlphaBetaPruning:
-    def __init__(self, depth=3):
-        self.depth = depth  # Maximum depth of the game tree
+class Node:
+    def __init__(self, x, y, g, h):
+        self.x, self.y, self.g, self.h = x, y, g, h
+        self.f = g + h
+        self.parent = None
+    def __lt__(self, other):
+        return self.f < other.f
 
-    def minimax(self, depth, node_index, maximizing_player, values, alpha, beta):
-        """Minimax algorithm with Alpha-Beta Pruning."""
-        if depth == self.depth:  # Leaf node
-            return values[node_index]
+def heuristic(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-        if maximizing_player:
-            best = -math.inf  # Maximizer starts with the worst possible value
-            for i in range(2):  # Two children per node
-                val = self.minimax(depth + 1, node_index * 2 + i, False, values, alpha, beta)
-                best = max(best, val)
-                alpha = max(alpha, best)
-                if beta <= alpha:
-                    break  # Beta cut-off (Prune remaining branches)
-            return best
-        else:
-            best = math.inf  # Minimizer starts with the best possible value
-            for i in range(2):
-                val = self.minimax(depth + 1, node_index * 2 + i, True, values, alpha, beta)
-                best = min(best, val)
-                beta = min(beta, best)
-                if beta <= alpha:
-                    break  # Alpha cut-off
-            return best
+def a_star(grid, start, goal):
+    open_list, closed_set = [], set()
+    heapq.heappush(open_list, Node(start[0], start[1], 0, heuristic(start, goal)))
+    
+    while open_list:
+        current = heapq.heappop(open_list)
+        if (current.x, current.y) == goal:
+            path = []
+            while current:
+                path.append((current.x, current.y))
+                current = current.parent
+            return path[::-1]
 
-# Example usage: Game tree with depth 3 and leaf values
-values = [3, 5, 6, 9, 1, 2, 0, -1]
-solver = AlphaBetaPruning(depth=3)
-optimal_value = solver.minimax(0, 0, True, values, -math.inf, math.inf)
+        closed_set.add((current.x, current.y))
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            x, y = current.x + dx, current.y + dy
+            if 0 <= x < len(grid) and 0 <= y < len(grid[0]) and grid[x][y] == 0 and (x, y) not in closed_set:
+                neighbor = Node(x, y, current.g + 1, heuristic((x, y), goal))
+                neighbor.parent = current
+                heapq.heappush(open_list, neighbor)
+    return None
 
-print("Optimal Value:", optimal_value)
+grid = [
+    [0, 0, 0, 0, 1],
+    [1, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0]
+]
+start, goal = (0, 0), (4, 4)
+path = a_star(grid, start, goal)
+print("Path:", path)
 
+🔁 A on Graph* 
 
-# 
+import heapq
 
+class Node:
+    def __init__(self, name, g, h):
+        self.name, self.g, self.h = g, h
+        self.name = name
+        self.f = g + h
+        self.parent = None
+    def __lt__(self, other):
+        return self.f < other.f
 
+def a_star(graph, heuristics, start, goal):
+    open_list, closed_set = [], set()
+    start_node = Node(start, 0, heuristics[start])
+    heapq.heappush(open_list, start_node)
+
+    while open_list:
+        current_node = heapq.heappop(open_list)
+        if current_node.name == goal:
+            path = []
+            while current_node:
+                path.append(current_node.name)
+                current_node = current_node.parent
+            return path[::-1]
+
+        closed_set.add(current_node.name)
+        for neighbor, cost in graph[current_node.name].items():
+            if neighbor in closed_set:
+                continue
+            g_cost = current_node.g + cost
+            h_cost = heuristics[neighbor]
+            neighbor_node = Node(neighbor, g_cost, h_cost)
+            neighbor_node.parent = current_node
+            heapq.heappush(open_list, neighbor_node)
+
+    return None
+
+graph = {
+    'A': {'B': 1, 'C': 4},
+    'B': {'A': 1, 'D': 2},
+    'C': {'A': 4, 'E': 5},
+    'D': {'B': 2, 'E': 1},
+    'E': {'C': 5, 'D': 1, 'F': 3, 'G': 2},
+    'F': {'E': 3},
+    'G': {'E': 2}
+}
+heuristics = {
+    'A': 6, 'B': 5, 'C': 4, 'D': 3,
+    'E': 2, 'F': 3, 'G': 0
+}
+path = a_star(graph, heuristics, 'A', 'G')
+print("Shortest path:", path)
+
+🧩 8-Tile Puzzle (A*) 
+
+import heapq
+
+def get_empty(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+def heuristic(state):
+    dist = 0
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] != 0:
+                goal_x, goal_y = divmod(state[i][j] - 1, 3)
+                dist += abs(i - goal_x) + abs(j - goal_y)
+    return dist
+
+def get_neighbors(state):
+    neighbors = []
+    x, y = get_empty(state)
+    for move, (dx, dy) in moves.items():
+        new_x, new_y = x + dx, y + dy
+        if 0 <= new_x < 3 and 0 <= new_y < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[new_x][new_y] = new_state[new_x][new_y], new_state[x][y]
+            neighbors.append((new_state, move))
+    return neighbors
+
+def print_n(state):
+    for row in state:
+        print(" ".join(str(num) if num != 0 else " " for num in row))
+    print()
+
+def astar(initial_state):
+    open_list = []
+    visited = set()
+    heapq.heappush(open_list, (heuristic(initial_state), 0, initial_state, []))
+
+    while open_list:
+        f, g, state, path = heapq.heappop(open_list)
+        print(f"Move: {g}")
+        print_n(state)
+
+        if state == goal_state:
+            return path
+
+        state_tuple = tuple(map(tuple, state))
+        if state_tuple in visited:
+            continue
+        visited.add(state_tuple)
+
+        for new_state, move in get_neighbors(state):
+            new_state_tuple = tuple(map(tuple, new_state))
+            if new_state_tuple not in visited:
+                new_g = g + 1
+                heapq.heappush(open_list, (new_g + heuristic(new_state), new_g, new_state, path + [move]))
+
+    return None
+
+goal_state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+initial_state = [[1, 2, 3], [4, 0, 5], [6, 7, 8]]
+moves = {"UP": (-1, 0), "DOWN": (1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}
+
+solution = astar(initial_state)
+print("Moves to solve:", solution)
+
+✅ Map Coloring using Backtracking
+
+def is_valid(graph, color, c, node):
+    for neighbor in graph[node]:
+        if color[neighbor] == c:
+            return False
+    return True
+
+def map_coloring(graph, m, color, node):
+    if node == len(graph):
+        return True
+    for c in range(1, m + 1):
+        if is_valid(graph, color, c, node):
+            color[node] = c
+            if map_coloring(graph, m, color, node + 1):
+                return True
+            color[node] = 0
+    return False
+
+def solve_map_coloring():
+    # Graph adjacency list (e.g., India's states or custom regions)
+    graph = [
+        [1, 2],     # Node 0 connected to 1 and 2
+        [0, 2, 3],  # Node 1 connected to 0, 2, 3
+        [0, 1, 3],  # Node 2 connected to 0, 1, 3
+        [1, 2]      # Node 3 connected to 1 and 2
+    ]
+    m = 3  # Number of colors
+    color = [0] * len(graph)
+
+    if map_coloring(graph, m, color, 0):
+        print("Coloring possible:", color)
+    else:
+        print("No solution found")
+
+solve_map_coloring()
+
+✅ N-Queens using Backtracking 
+
+def is_safe(board, row, col, n):
+    for i in range(col):
+        if board[row][i] == 1:
+            return False
+    for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
+    for i, j in zip(range(row, n, 1), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
+    return True
+
+def solve_nqueens_util(board, col, n):
+    if col >= n:
+        return True
+    for i in range(n):
+        if is_safe(board, i, col, n):
+            board[i][col] = 1
+            if solve_nqueens_util(board, col + 1, n):
+                return True
+            board[i][col] = 0
+    return False
+
+def solve_nqueens(n):
+    board = [[0] * n for _ in range(n)]
+    if solve_nqueens_util(board, 0, n):
+        for row in board:
+            print(" ".join("Q" if x else "." for x in row))
+    else:
+        print("No solution found")
+
+n = 8  # Change N here
+solve_nqueens(n)
+
+✅ Linear Regression (from scratch using NumPy) 
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Sample data
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([3, 4, 2, 5, 6])
+
+# Calculating slope (m) and intercept (c)
+n = len(x)
+m = (n * np.sum(x*y) - np.sum(x) * np.sum(y)) / (n * np.sum(x**2) - (np.sum(x))**2)
+c = (np.sum(y) - m * np.sum(x)) / n
+
+print(f"Equation: y = {m:.2f}x + {c:.2f}")
+
+# Predict values
+y_pred = m * x + c
+
+# Plotting the results
+plt.scatter(x, y, color='red', label='Actual Data')
+plt.plot(x, y_pred, color='blue', label='Regression Line')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.legend()
+plt.title('Linear Regression')
+plt.show()
